@@ -1,0 +1,77 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy to AWS EC2
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          script: |
+            set -e
+            echo "🚀 Starting deployment..."
+
+            # Navigate to project directory
+            cd /home/ec2-user/test_odoo_integration
+
+            # Pull latest changes
+            echo "📥 Pulling latest code from GitHub..."
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Update .env file with secrets (if needed)
+            echo "🔐 Updating environment variables..."
+            # Environment variables are already in .env file on EC2
+
+            # Stop existing containers
+            echo "🛑 Stopping existing containers..."
+            docker-compose down
+
+            # Pull latest images and rebuild
+            echo "🏗️  Building and starting containers..."
+            docker-compose up -d --build
+
+            # Wait for services to be healthy
+            echo "⏳ Waiting for services to start..."
+            sleep 15
+
+            # Check if containers are running
+            echo "✅ Checking container status..."
+            docker-compose ps
+
+            # Health check
+            echo "🏥 Performing health check..."
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/health || echo "000")
+
+            if [ "$HTTP_STATUS" = "200" ]; then
+              echo "✅ Deployment successful! Health check passed."
+            else
+              echo "❌ Health check failed with status: $HTTP_STATUS"
+              docker-compose logs --tail=50
+              exit 1
+            fi
+
+            echo "🎉 Deployment completed successfully!"
+
+      - name: Deployment Status
+        if: always()
+        run: |
+          if [ ${{ job.status }} == 'success' ]; then
+            echo "✅ Deployment succeeded"
+          else
+            echo "❌ Deployment failed"
+          fi
