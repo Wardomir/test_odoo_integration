@@ -39,6 +39,7 @@ async def _sync_contacts_async():
     try:
         # Initialize Odoo client and fetch contacts
         odoo_client = OdooClient()
+        #TODO Optimization: Better not to keep all contacts in memory in the same time.
         odoo_contacts = await odoo_client.get_all_contacts()
 
         if not odoo_contacts:

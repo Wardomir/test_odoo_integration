@@ -89,10 +89,12 @@ class OdooClient:
 
     async def get_all_contacts(self) -> List[Dict[str, Any]]:
         """Fetch all contacts from Odoo with pagination"""
+        #TODO Optimization: Better to only query for users added/updated after our latest sync.
         all_contacts = []
         offset = 0
         limit = 100
 
+        #TODO Optimization: Currently "rude" querying is implemented, better switch to "polite" querying.
         while True:
             contacts = await self.get_contacts(limit=limit, offset=offset)
 
@@ -110,6 +112,8 @@ class OdooClient:
 
     async def get_invoices(self, limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
         """Fetch invoices from Odoo"""
+        #TODO Optimization: Better to only query for invoices added/updated after our latest sync.
+
         if not self.session_id or not self.user_id:
             await self.authenticate()
 
@@ -169,6 +173,7 @@ class OdooClient:
         offset = 0
         limit = 100
 
+        #TODO Optimization: Currently "rude" querying is implemented, better switch to "polite" querying.
         while True:
             invoices = await self.get_invoices(limit=limit, offset=offset)
 
