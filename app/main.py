@@ -7,6 +7,7 @@ from app.config import get_settings
 from app.scheduler import DatabaseScheduler
 from app.database import get_db, Base, engine
 from app.models import Contact, Invoice
+from app.auth import verify_api_key
 
 settings = get_settings()
 
@@ -40,7 +41,7 @@ async def health_check():
     }
 
 
-@app.post("/schedule-task")
+@app.post("/schedule-task", dependencies=[Depends(verify_api_key)])
 async def schedule_task(request: ScheduleTaskRequest):
     """
     Schedule a task using a cron string.
@@ -102,7 +103,7 @@ async def schedule_task(request: ScheduleTaskRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/scheduled-tasks")
+@app.get("/scheduled-tasks", dependencies=[Depends(verify_api_key)])
 async def get_scheduled_tasks():
     """
     Get all currently scheduled tasks from Redis.
@@ -126,7 +127,7 @@ async def get_scheduled_tasks():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.delete("/scheduled-tasks/{task_name}")
+@app.delete("/scheduled-tasks/{task_name}", dependencies=[Depends(verify_api_key)])
 async def delete_scheduled_task(task_name: str):
     """
     Delete a scheduled task from Redis.
@@ -170,7 +171,7 @@ class ContactResponse(BaseModel):
         from_attributes = True
 
 
-@app.get("/contacts", response_model=List[ContactResponse])
+@app.get("/contacts", response_model=List[ContactResponse], dependencies=[Depends(verify_api_key)])
 async def get_contacts(
     skip: int = 0,
     limit: int = 100,
@@ -190,7 +191,7 @@ async def get_contacts(
     return contacts
 
 
-@app.get("/contacts/{contact_id}", response_model=ContactResponse)
+@app.get("/contacts/{contact_id}", response_model=ContactResponse, dependencies=[Depends(verify_api_key)])
 async def get_contact_by_id(
     contact_id: int,
     db: Session = Depends(get_db)
@@ -229,7 +230,7 @@ class InvoiceResponse(BaseModel):
         from_attributes = True
 
 
-@app.get("/invoices", response_model=List[InvoiceResponse])
+@app.get("/invoices", response_model=List[InvoiceResponse], dependencies=[Depends(verify_api_key)])
 async def get_invoices(
     skip: int = 0,
     limit: int = 100,
@@ -249,7 +250,7 @@ async def get_invoices(
     return invoices
 
 
-@app.get("/invoices/{invoice_id}", response_model=InvoiceResponse)
+@app.get("/invoices/{invoice_id}", response_model=InvoiceResponse, dependencies=[Depends(verify_api_key)])
 async def get_invoice_by_id(
     invoice_id: int,
     db: Session = Depends(get_db)

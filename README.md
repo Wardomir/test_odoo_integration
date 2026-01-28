@@ -64,6 +64,7 @@ This application uses a microservices architecture with the following components
 - ✅ Real-time schedule management (add/remove tasks)
 - ✅ Handles Odoo's session-based authentication
 - ✅ Pagination support for large datasets
+- ✅ API key authentication for secure access
 - ✅ Docker-compose setup for easy deployment
 
 ## Setup
@@ -77,17 +78,53 @@ This application uses a microservices architecture with the following components
 1. **Clone and configure environment:**
    ```bash
    cp .env.example .env
-   # Edit .env with your Odoo credentials
+   # Edit .env with your Odoo credentials and API key
    ```
 
-2. **Start all services:**
+2. **Generate a secure API key:**
+   ```bash
+   # Generate a random API key (Linux/Mac)
+   openssl rand -hex 32
+
+   # Or use Python
+   python -c "import secrets; print(secrets.token_urlsafe(32))"
+   ```
+
+   Add the generated key to `.env`:
+   ```
+   API_KEY=your-generated-secure-key-here
+   ```
+
+3. **Start all services:**
    ```bash
    docker-compose up --build
    ```
 
-3. **Access the API:**
+4. **Access the API:**
    - API Documentation: http://localhost:8000/docs
    - API Base URL: http://localhost:8000
+
+## API Authentication
+
+All API endpoints (except `/health` and `/`) require authentication using an API key.
+
+**How to authenticate:**
+- Add header: `X-API-Key: your-api-key-here`
+- The API key must match the `API_KEY` value in your `.env` file
+
+**Example with curl:**
+```bash
+curl http://localhost:8000/contacts \
+  -H "X-API-Key: your-api-key-here"
+```
+
+**Unauthenticated endpoints:**
+- `GET /` - Root redirect to docs
+- `GET /health` - Health check
+
+**Protected endpoints:**
+- All task management endpoints (`/schedule-task`, `/scheduled-tasks`, etc.)
+- All data endpoints (`/contacts`, `/invoices`, etc.)
 
 ## API Endpoints
 
@@ -97,6 +134,7 @@ This application uses a microservices architecture with the following components
 ```http
 POST /schedule-task
 Content-Type: application/json
+X-API-Key: your-api-key-here
 
 {
   "cron": "0 * * * *",
@@ -219,6 +257,7 @@ Returns system health status and configuration info.
 ```bash
 curl -X POST http://localhost:8000/schedule-task \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: your-api-key-here" \
   -d '{
     "cron": "*/30 * * * *",
     "task_name": "sync_contacts_every_30min",
@@ -230,6 +269,7 @@ curl -X POST http://localhost:8000/schedule-task \
 ```bash
 curl -X POST http://localhost:8000/schedule-task \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: your-api-key-here" \
   -d '{
     "cron": "0 2 * * *",
     "task_name": "sync_invoices_daily",
@@ -239,22 +279,26 @@ curl -X POST http://localhost:8000/schedule-task \
 
 ### Get All Scheduled Tasks
 ```bash
-curl http://localhost:8000/scheduled-tasks
+curl http://localhost:8000/scheduled-tasks \
+  -H "X-API-Key: your-api-key-here"
 ```
 
 ### Remove a Scheduled Task
 ```bash
-curl -X DELETE http://localhost:8000/scheduled-tasks/sync_contacts_every_30min
+curl -X DELETE http://localhost:8000/scheduled-tasks/sync_contacts_every_30min \
+  -H "X-API-Key: your-api-key-here"
 ```
 
 ### Query Contacts
 ```bash
-curl http://localhost:8000/contacts?limit=10
+curl http://localhost:8000/contacts?limit=10 \
+  -H "X-API-Key: your-api-key-here"
 ```
 
 ### Query Invoices
 ```bash
-curl http://localhost:8000/invoices?limit=10
+curl http://localhost:8000/invoices?limit=10 \
+  -H "X-API-Key: your-api-key-here"
 ```
 
 ## Database Schema
@@ -357,7 +401,17 @@ ODOO_URL=https://your-odoo-instance.com
 ODOO_DB=your_database_name
 ODOO_USERNAME=your_username
 ODOO_PASSWORD=your_password
+
+# API Security (Generate a secure random key)
+API_KEY=your-secure-api-key-here
 ```
+
+**Security Best Practices:**
+- Generate a strong, random API key (at least 32 characters)
+- Never commit your `.env` file to version control
+- Rotate API keys regularly
+- Use different keys for development and production
+- Store production keys securely (e.g., AWS Secrets Manager, GitHub Secrets)
 
 ## Troubleshooting
 

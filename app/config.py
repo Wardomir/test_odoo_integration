@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     ODOO_USERNAME: str
     ODOO_PASSWORD: str
 
+    # API Security
+    API_KEY: str
+
     @property
     def database_url(self) -> str:
         return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
